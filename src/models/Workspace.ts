@@ -13,6 +13,9 @@ export interface IWorkspace extends Document {
     features: {
         hasConferenceHall: boolean;
         hasCabin: boolean;
+        workstationSeats?: number;
+        conferenceHallSeats?: number;
+        cabinSeats?: number;
     };
     allottedTo?: mongoose.Types.ObjectId | string;
 }
@@ -61,6 +64,18 @@ const workspaceSchema: Schema = new Schema({
         hasCabin: {
             type: Boolean,
             default: false,
+        },
+        workstationSeats: {
+            type: Number,
+            default: 0,
+        },
+        conferenceHallSeats: {
+            type: Number,
+            default: 0,
+        },
+        cabinSeats: {
+            type: Number,
+            default: 0,
         }
     },
     allottedTo: {
