@@ -18,7 +18,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 // @access  Public
 export const createUser = async (req: Request, res: Response): Promise<any | void> => {
     try {
-        const { name, email, role } = req.body;
+        const { name, email, role, mobile, organization, password } = req.body;
         const userExists = await User.findOne({ email });
 
         if (userExists) {
@@ -28,7 +28,10 @@ export const createUser = async (req: Request, res: Response): Promise<any | voi
         const user = await User.create({
             name,
             email,
-            role: role || 'User',
+            password: password || 'password123', // Default password if not provided
+            role: role || 'Member',
+            mobile,
+            organization
         });
 
         res.status(201).json(user);

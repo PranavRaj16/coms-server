@@ -22,6 +22,7 @@ export const authUser = async (req: Request, res: Response): Promise<void | any>
                 email: user.email,
                 role: user.role,
                 organization: user.organization,
+                mobile: user.mobile,
                 token: generateToken(user._id.toString()),
             });
         } else {
@@ -65,6 +66,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void | 
                 email: user.email,
                 role: user.role,
                 organization: user.organization,
+                mobile: user.mobile,
                 token: generateToken(user._id.toString()),
             });
         } else {
@@ -90,6 +92,48 @@ export const getUserProfile = async (req: any, res: Response): Promise<void> => 
                 role: user.role,
                 mobile: user.mobile,
                 organization: user.organization,
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+export const updateUserProfile = async (req: any, res: Response): Promise<void | any> => {
+    try {
+        const user = await User.findById(req.user?._id);
+
+        if (user) {
+            user.name = req.body.name || user.name;
+            user.email = req.body.email || user.email;
+            user.mobile = req.body.mobile || user.mobile;
+            user.organization = req.body.organization || user.organization;
+
+            if (req.body.password) {
+                if (!req.body.oldPassword) {
+                    return res.status(400).json({ message: 'Old password is required to set a new one' });
+                }
+                const isMatch = await user.matchPassword(req.body.oldPassword);
+                if (!isMatch) {
+                    return res.status(400).json({ message: 'Current password does not match' });
+                }
+                user.password = req.body.password;
+            }
+
+            const updatedUser = await user.save();
+
+            res.json({
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                mobile: updatedUser.mobile,
+                organization: updatedUser.organization,
+                token: generateToken(updatedUser._id.toString()),
             });
         } else {
             res.status(404).json({ message: 'User not found' });

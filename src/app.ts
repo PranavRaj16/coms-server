@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import workspaceRoutes from './routes/workspaceRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 
 
 
@@ -27,6 +28,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/posts', postRoutes);
 
 // Error Handling Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
