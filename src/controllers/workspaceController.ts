@@ -108,7 +108,8 @@ export const getMyWorkspace = async (req: AuthRequest, res: Response): Promise<v
         if (workspace) {
             res.json(workspace);
         } else {
-            res.status(404).json({ message: 'No workspace allotted to you' });
+            console.log(`[MY-WORKSPACE] No workspace assigned to user ${req.user._id}`);
+            res.json(null); // Return 200 with null instead of 404
         }
     } catch (error: any) {
         res.status(500).json({ message: error.message || 'Internal Server Error' });
@@ -129,7 +130,8 @@ export const getCommunityMembers = async (req: AuthRequest, res: Response): Prom
         const myWorkspace = await Workspace.findOne({ allottedTo: req.user._id });
 
         if (!myWorkspace) {
-            res.status(404).json({ message: 'Join a workspace to see your community' });
+            console.log(`[COMMUNITY] User ${req.user._id} has no workspace, cannot see community`);
+            res.json([]); // Return empty array instead of 404
             return;
         }
 

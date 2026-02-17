@@ -5,7 +5,8 @@ export interface IContactRequest extends Document {
     email: string;
     subject: string;
     message: string;
-    status: 'Pending' | 'Read' | 'Replied';
+    phone: string;
+    status: 'Pending' | 'Reviewed' | 'Completed';
 }
 
 const contactRequestSchema: Schema = new Schema({
@@ -17,6 +18,10 @@ const contactRequestSchema: Schema = new Schema({
         type: String,
         required: true,
     },
+    phone: {
+        type: String,
+        required: false, // Making it optional for now to avoid breaking existing data if any, but user asked for it.
+    },
     subject: {
         type: String,
         required: true,
@@ -27,7 +32,7 @@ const contactRequestSchema: Schema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Read', 'Replied'],
+        enum: ['Pending', 'Reviewed', 'Completed'],
         default: 'Pending',
     }
 }, {

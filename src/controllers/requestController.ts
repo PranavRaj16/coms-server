@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import QuoteRequest from '../models/QuoteRequest.js';
 import ContactRequest from '../models/ContactRequest.js';
 import User from '../models/User.js';
@@ -79,5 +80,83 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
         });
     } catch (error: any) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update quote request status
+// @route   PUT /api/requests/quote/:id
+// @access  Private/Admin
+export const updateQuoteRequest = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const idStr = String(req.params.id);
+        const { status } = req.body;
+        console.log(`>>> [%s] PUT /api/requests/quote/${idStr} | New Status: ${status}`, new Date().toISOString());
+
+        if (!status) {
+            res.status(400).json({ message: 'Status is required' });
+            return;
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(idStr)) {
+            console.warn(`[WARN] Invalid Quote ID format: ${idStr}`);
+            res.status(400).json({ message: 'Invalid Quote Request ID format' });
+            return;
+        }
+
+        const updatedRequest = await QuoteRequest.findByIdAndUpdate(
+            idStr,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (updatedRequest) {
+            console.log(`[SUCCESS] Updated Quote ${idStr}`);
+            res.json(updatedRequest);
+        } else {
+            console.log(`[ERROR] Quote ${idStr} not found in database`);
+            res.status(404).json({ message: 'Quote request not found' });
+        }
+    } catch (error: any) {
+        console.error(`[CRITICAL] Error updating quote: ${error.message}`);
+        res.status(400).json({ message: `Update failed: ${error.message}` });
+    }
+};
+
+// @desc    Update contact request status
+// @route   PUT /api/requests/contact/:id
+// @access  Private/Admin
+export const updateContactRequest = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = req.params.id as string;
+        const { status } = req.body;
+        console.log(`>>> [%s] PUT /api/requests/contact/${id} | New Status: ${status}`, new Date().toISOString());
+
+        if (!status) {
+            res.status(400).json({ message: 'Status is required' });
+            return;
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.warn(`[WARN] Invalid Contact ID: ${id}`);
+            res.status(400).json({ message: 'Invalid Contact Request ID format' });
+            return;
+        }
+
+        const updatedRequest = await ContactRequest.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (updatedRequest) {
+            console.log(`[SUCCESS] Updated Contact ${id}`);
+            res.json(updatedRequest);
+        } else {
+            console.log(`[ERROR] Contact ${id} not found in database`);
+            res.status(404).json({ message: 'Contact inquiry not found' });
+        }
+    } catch (error: any) {
+        console.error(`[CRITICAL] Error updating contact: ${error.message}`);
+        res.status(400).json({ message: `Update failed: ${error.message}` });
     }
 };

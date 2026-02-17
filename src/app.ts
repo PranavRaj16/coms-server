@@ -12,6 +12,12 @@ const app: Express = express();
 app.use(cors());
 app.use(express.json());
 
+// Request logger middleware
+app.use((req: any, res: any, next: any) => {
+    console.log(`\x1b[36m%s\x1b[0m`, `[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 // Health check route
 app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'OK', message: 'Backend is running' });

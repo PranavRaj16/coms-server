@@ -11,7 +11,7 @@ export interface IQuoteRequest extends Document {
     startDate: Date;
     duration: string;
     additionalRequirements?: string;
-    status: 'Pending' | 'Contacted' | 'Closed';
+    status: 'Pending' | 'Reviewed' | 'Completed';
 }
 
 const quoteRequestSchema: Schema = new Schema({
@@ -56,7 +56,7 @@ const quoteRequestSchema: Schema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Contacted', 'Closed'],
+        enum: ['Pending', 'Reviewed', 'Completed'],
         default: 'Pending',
     }
 }, {
