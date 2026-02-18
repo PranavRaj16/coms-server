@@ -138,7 +138,7 @@ export const getBookingRequests = async (req: any, res: Response): Promise<void 
 // @access  Private/Admin
 export const updateBookingRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
-        const id = req.params.id;
+        const id = req.params.id as string;
         const { status } = req.body;
 
         if (!status) {
@@ -322,7 +322,7 @@ export const getVisitRequests = async (req: any, res: Response): Promise<void | 
 // @access  Private/Admin
 export const updateVisitRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
-        const id = req.params.id;
+        const id = req.params.id as string;
         const { status } = req.body;
 
         if (!status) {
