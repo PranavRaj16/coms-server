@@ -6,10 +6,12 @@ import {
     updateWorkspace,
     deleteWorkspace,
     getMyWorkspace,
-    getCommunityMembers
+    getCommunityMembers,
+    uploadWorkspaceImages
 } from '../controllers/workspaceController.js';
 
 import { protect, admin } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/uploadMiddleware.js';
 
 const router: Router = express.Router();
 
@@ -24,5 +26,7 @@ router.route('/:id')
     .get(getWorkspaceById)
     .put(protect, admin, updateWorkspace)
     .delete(protect, admin, deleteWorkspace);
+
+router.post('/:id/images', protect, admin, upload.array('images', 3), uploadWorkspaceImages);
 
 export default router;

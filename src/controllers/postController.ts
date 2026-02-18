@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import Post from '../models/Post.js';
+import { checkRequiredFields } from '../utils/validation.js';
 
 // @desc    Get all posts
 // @route   GET /api/posts
 // @access  Private
-export const getPosts = async (req: Request, res: Response): Promise<void> => {
+export const getPosts = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const posts = await Post.find({}).sort({ createdAt: -1 });
         res.json(posts);
@@ -16,14 +17,14 @@ export const getPosts = async (req: Request, res: Response): Promise<void> => {
 // @desc    Create a new post
 // @route   POST /api/posts
 // @access  Private
-export const createPost = async (req: Request, res: Response): Promise<void> => {
+export const createPost = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { content, authorName } = req.body;
         const author = (req as any).user?._id;
 
-        if (!content) {
-            res.status(400).json({ message: 'Content is required' });
-            return;
+        const requiredError = checkRequiredFields(req.body, ['content', 'authorName']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
         }
 
         const post = await Post.create({
@@ -41,7 +42,7 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
 // @desc    Upvote a post
 // @route   PUT /api/posts/:id/upvote
 // @access  Private
-export const upvotePost = async (req: Request, res: Response): Promise<void> => {
+export const upvotePost = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const post = await Post.findById(req.params.id);
         const userId = (req as any).user?._id.toString();
@@ -67,14 +68,14 @@ export const upvotePost = async (req: Request, res: Response): Promise<void> => 
 // @desc    Add a comment to a post
 // @route   POST /api/posts/:id/comments
 // @access  Private
-export const addComment = async (req: Request, res: Response): Promise<void> => {
+export const addComment = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { text, userName } = req.body;
         const user = (req as any).user?._id;
 
-        if (!text) {
-            res.status(400).json({ message: 'Comment text is required' });
-            return;
+        const requiredError = checkRequiredFields(req.body, ['text', 'userName']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
         }
 
         const post = await Post.findById(req.params.id);
@@ -101,7 +102,7 @@ export const addComment = async (req: Request, res: Response): Promise<void> => 
 // @desc    Delete a post
 // @route   DELETE /api/posts/:id
 // @access  Private
-export const deletePost = async (req: Request, res: Response): Promise<void> => {
+export const deletePost = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) {
@@ -128,7 +129,7 @@ export const deletePost = async (req: Request, res: Response): Promise<void> => 
 // @desc    Upvote a comment
 // @route   PUT /api/posts/:postId/comments/:commentId/upvote
 // @access  Private
-export const upvoteComment = async (req: Request, res: Response): Promise<void> => {
+export const upvoteComment = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { postId, commentId } = req.params;
         const post = await Post.findById(postId);
@@ -161,7 +162,7 @@ export const upvoteComment = async (req: Request, res: Response): Promise<void> 
 // @desc    Delete a comment
 // @route   DELETE /api/posts/:postId/comments/:commentId
 // @access  Private
-export const deleteComment = async (req: Request, res: Response): Promise<void> => {
+export const deleteComment = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { postId, commentId } = req.params;
         const post = await Post.findById(postId);
@@ -197,15 +198,15 @@ export const deleteComment = async (req: Request, res: Response): Promise<void> 
 // @desc    Add a reply to a comment
 // @route   POST /api/posts/:postId/comments/:commentId/replies
 // @access  Private
-export const addReply = async (req: Request, res: Response): Promise<void> => {
+export const addReply = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { postId, commentId } = req.params;
         const { text, userName } = req.body;
         const user = (req as any).user?._id;
 
-        if (!text) {
-            res.status(400).json({ message: 'Reply text is required' });
-            return;
+        const requiredError = checkRequiredFields(req.body, ['text', 'userName']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
         }
 
         const post = await Post.findById(postId);

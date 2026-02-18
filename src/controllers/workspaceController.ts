@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import Workspace from '../models/Workspace.js';
+import { checkRequiredFields } from '../utils/validation.js';
+import { v2 as cloudinary } from 'cloudinary';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -8,7 +10,7 @@ interface AuthRequest extends Request {
 // @desc    Get all workspaces
 // @route   GET /api/workspaces
 // @access  Public
-export const getWorkspaces = async (req: Request, res: Response): Promise<void> => {
+export const getWorkspaces = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const workspaces = await Workspace.find({})
             .populate('allottedTo', 'name email organization')
@@ -22,7 +24,7 @@ export const getWorkspaces = async (req: Request, res: Response): Promise<void> 
 // @desc    Get single workspace
 // @route   GET /api/workspaces/:id
 // @access  Public
-export const getWorkspaceById = async (req: Request, res: Response): Promise<void> => {
+export const getWorkspaceById = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const workspace = await Workspace.findById(req.params.id).populate('allottedTo', 'name email organization');
         if (workspace) {
@@ -38,8 +40,13 @@ export const getWorkspaceById = async (req: Request, res: Response): Promise<voi
 // @desc    Create a workspace
 // @route   POST /api/workspaces
 // @access  Private/Admin
-export const createWorkspace = async (req: Request, res: Response): Promise<void> => {
+export const createWorkspace = async (req: Request, res: Response): Promise<void | any> => {
     try {
+        const requiredError = checkRequiredFields(req.body, ['name', 'location', 'type', 'capacity']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
         const workspace = new Workspace(req.body);
         const createdWorkspace = await workspace.save();
         const populatedWorkspace = await Workspace.findById(createdWorkspace._id).populate('allottedTo', 'name email organization');
@@ -52,18 +59,52 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
 // @desc    Update a workspace
 // @route   PUT /api/workspaces/:id
 // @access  Private/Admin
-export const updateWorkspace = async (req: Request, res: Response): Promise<void> => {
+export const updateWorkspace = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const { id } = req.params;
         const workspace = await Workspace.findById(id);
 
         if (workspace) {
+            // Validate required fields if they are being updated
+            const updateFields = Object.keys(req.body);
+            if (updateFields.includes('name') && !req.body.name) {
+                return res.status(400).json({ message: 'Name cannot be empty' });
+            }
+            if (updateFields.includes('location') && !req.body.location) {
+                return res.status(400).json({ message: 'Location cannot be empty' });
+            }
+
+            // Handle image removal from Cloudinary if images array is provided in body
+            if (req.body.images && Array.isArray(req.body.images)) {
+                const removedImages = workspace.images.filter(url => !req.body.images.includes(url));
+                for (const url of removedImages) {
+                    try {
+                        // Extract public_id from Cloudinary URL
+                        const publicId = url.split('/').pop()?.split('.')[0];
+                        if (publicId) {
+                            await cloudinary.uploader.destroy(`coms-workspaces/${publicId}`);
+                        }
+                    } catch (err) {
+                        console.error('Failed to delete image from Cloudinary:', err);
+                    }
+                }
+            }
+
             // Update fields
             Object.keys(req.body).forEach(key => {
                 if (key !== '_id' && key !== 'id') {
                     (workspace as any)[key] = req.body[key];
                 }
             });
+
+            // Ensure image (primary) is synced with images array
+            if (workspace.images && workspace.images.length > 0) {
+                if (!workspace.images.includes(workspace.image || '')) {
+                    workspace.image = workspace.images[0];
+                }
+            } else {
+                workspace.image = '';
+            }
 
             const updatedWorkspace = await workspace.save();
             const populatedWorkspace = await Workspace.findById(updatedWorkspace._id).populate('allottedTo', 'name email organization');
@@ -76,13 +117,58 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
     }
 };
 
+// @desc    Upload workspace images
+// @route   POST /api/workspaces/:id/images
+// @access  Private/Admin
+export const uploadWorkspaceImages = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const workspace = await Workspace.findById(req.params.id);
+        if (!workspace) {
+            return res.status(404).json({ message: 'Workspace not found' });
+        }
+
+        const files = req.files as Express.Multer.File[];
+        if (!files || files.length === 0) {
+            return res.status(400).json({ message: 'No images uploaded' });
+        }
+
+        const imageUrls = files.map(file => file.path);
+
+        // Combine existing images with new ones, limit to 3 total
+        const totalImages = [...(workspace.images || []), ...imageUrls].slice(0, 3);
+
+        workspace.images = totalImages;
+        if (totalImages.length > 0) {
+            workspace.image = totalImages[0]; // Set first as primary
+        }
+
+        await workspace.save();
+        res.json(workspace);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Delete a workspace
 // @route   DELETE /api/workspaces/:id
 // @access  Private/Admin
-export const deleteWorkspace = async (req: Request, res: Response): Promise<void> => {
+export const deleteWorkspace = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const workspace = await Workspace.findById(req.params.id);
         if (workspace) {
+            // Delete images from Cloudinary
+            if (workspace.images && workspace.images.length > 0) {
+                for (const url of workspace.images) {
+                    try {
+                        const publicId = url.split('/').pop()?.split('.')[0];
+                        if (publicId) {
+                            await cloudinary.uploader.destroy(`coms-workspaces/${publicId}`);
+                        }
+                    } catch (err) {
+                        console.error('Failed to delete image from Cloudinary during workspace deletion:', err);
+                    }
+                }
+            }
             await workspace.deleteOne();
             res.json({ message: 'Workspace removed' });
         } else {
@@ -92,10 +178,11 @@ export const deleteWorkspace = async (req: Request, res: Response): Promise<void
         res.status(500).json({ message: error.message });
     }
 };
+
 // @desc    Get logged in user's workspace
 // @route   GET /api/workspaces/my-workspace
 // @access  Private
-export const getMyWorkspace = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMyWorkspace = async (req: AuthRequest, res: Response): Promise<void | any> => {
     try {
         if (!req.user) {
             res.status(401).json({ message: 'Not authorized' });
@@ -119,7 +206,7 @@ export const getMyWorkspace = async (req: AuthRequest, res: Response): Promise<v
 // @desc    Get community members at the same location
 // @route   GET /api/workspaces/community
 // @access  Private
-export const getCommunityMembers = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getCommunityMembers = async (req: AuthRequest, res: Response): Promise<void | any> => {
     try {
         if (!req.user) {
             res.status(401).json({ message: 'Not authorized' });

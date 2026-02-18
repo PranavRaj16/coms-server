@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import User from '../models/User.js';
+import { validateEmail, validatePassword, checkRequiredFields, validateMobile } from '../utils/validation.js';
 
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
-export const getUsers = async (req: Request, res: Response): Promise<void> => {
+export const getUsers = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const users = await User.find({}).sort({ createdAt: -1 });
         res.json(users);
@@ -19,6 +20,23 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 export const createUser = async (req: Request, res: Response): Promise<any | void> => {
     try {
         const { name, email, role, mobile, organization, password } = req.body;
+        const requiredError = checkRequiredFields(req.body, ['name', 'email']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (password && !validatePassword(password)) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        if (mobile && !validateMobile(mobile)) {
+            return res.status(400).json({ message: 'Invalid mobile number format' });
+        }
+
         const userExists = await User.findOne({ email });
 
         if (userExists) {
@@ -43,10 +61,18 @@ export const createUser = async (req: Request, res: Response): Promise<any | voi
 // @desc    Update a user
 // @route   PUT /api/users/:id
 // @access  Private/Admin
-export const updateUser = async (req: Request, res: Response): Promise<void> => {
+export const updateUser = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {
+            if (req.body.email && !validateEmail(req.body.email)) {
+                return res.status(400).json({ message: 'Invalid email format' });
+            }
+
+            if (req.body.mobile && !validateMobile(req.body.mobile)) {
+                return res.status(400).json({ message: 'Invalid mobile number format' });
+            }
+
             user.name = req.body.name || user.name;
             user.email = req.body.email || user.email;
             user.role = req.body.role || user.role;
@@ -77,7 +103,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 // @desc    Delete a user
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+export const deleteUser = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {

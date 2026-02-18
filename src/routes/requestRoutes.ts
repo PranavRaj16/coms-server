@@ -14,7 +14,7 @@ import { protect, admin } from '../middleware/authMiddleware.js';
 const router: Router = express.Router();
 
 router.post('/quote', submitQuoteRequest);
-router.get('/quote', protect, admin, getQuoteRequests);
+router.get('/quote', protect, getQuoteRequests);
 router.put('/quote/:id', protect, admin, updateQuoteRequest);
 
 router.post('/contact', submitContactRequest);

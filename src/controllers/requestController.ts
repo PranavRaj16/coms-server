@@ -3,14 +3,28 @@ import mongoose from 'mongoose';
 import QuoteRequest from '../models/QuoteRequest.js';
 import ContactRequest from '../models/ContactRequest.js';
 import User from '../models/User.js';
+import { validateEmail, checkRequiredFields, validateMobile } from '../utils/validation.js';
 
 // --- Quote Requests ---
 
 // @desc    Submit a quote request
 // @route   POST /api/requests/quote
 // @access  Public
-export const submitQuoteRequest = async (req: Request, res: Response): Promise<void> => {
+export const submitQuoteRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
+        const requiredError = checkRequiredFields(req.body, ['fullName', 'workEmail', 'requiredWorkspace', 'firmName', 'contactNumber']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(req.body.workEmail)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (req.body.contactNumber && !validateMobile(req.body.contactNumber)) {
+            return res.status(400).json({ message: 'Invalid contact number format' });
+        }
+
         const quoteRequest = new QuoteRequest(req.body);
         const createdRequest = await quoteRequest.save();
         res.status(201).json(createdRequest);
@@ -19,12 +33,13 @@ export const submitQuoteRequest = async (req: Request, res: Response): Promise<v
     }
 };
 
-// @desc    Get all quote requests
-// @route   GET /api/requests/quote
-// @access  Private/Admin
-export const getQuoteRequests = async (req: Request, res: Response): Promise<void> => {
+export const getQuoteRequests = async (req: any, res: Response): Promise<void | any> => {
     try {
-        const requests = await QuoteRequest.find({}).sort({ createdAt: -1 });
+        let query = {};
+        if (req.user && req.user.role !== 'Admin') {
+            query = { workEmail: req.user.email };
+        }
+        const requests = await QuoteRequest.find(query).sort({ createdAt: -1 });
         res.json(requests);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -36,8 +51,21 @@ export const getQuoteRequests = async (req: Request, res: Response): Promise<voi
 // @desc    Submit a contact request
 // @route   POST /api/requests/contact
 // @access  Public
-export const submitContactRequest = async (req: Request, res: Response): Promise<void> => {
+export const submitContactRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
+        const requiredError = checkRequiredFields(req.body, ['name', 'email', 'subject', 'message']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(req.body.email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (req.body.phone && !validateMobile(req.body.phone)) {
+            return res.status(400).json({ message: 'Invalid phone number format' });
+        }
+
         const contactRequest = new ContactRequest(req.body);
         const createdRequest = await contactRequest.save();
         res.status(201).json(createdRequest);
@@ -49,7 +77,7 @@ export const submitContactRequest = async (req: Request, res: Response): Promise
 // @desc    Get all contact requests
 // @route   GET /api/requests/contact
 // @access  Private/Admin
-export const getContactRequests = async (req: Request, res: Response): Promise<void> => {
+export const getContactRequests = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const requests = await ContactRequest.find({}).sort({ createdAt: -1 });
         res.json(requests);
@@ -63,7 +91,7 @@ export const getContactRequests = async (req: Request, res: Response): Promise<v
 // @desc    Get dashboard stats
 // @route   GET /api/requests/stats
 // @access  Private/Admin
-export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
+export const getDashboardStats = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const totalUsers = await User.countDocuments();
         const activeMembers = await User.countDocuments({ status: 'Active' });
@@ -86,7 +114,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
 // @desc    Update quote request status
 // @route   PUT /api/requests/quote/:id
 // @access  Private/Admin
-export const updateQuoteRequest = async (req: Request, res: Response): Promise<void> => {
+export const updateQuoteRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const idStr = String(req.params.id);
         const { status } = req.body;
@@ -125,7 +153,7 @@ export const updateQuoteRequest = async (req: Request, res: Response): Promise<v
 // @desc    Update contact request status
 // @route   PUT /api/requests/contact/:id
 // @access  Private/Admin
-export const updateContactRequest = async (req: Request, res: Response): Promise<void> => {
+export const updateContactRequest = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const id = req.params.id as string;
         const { status } = req.body;

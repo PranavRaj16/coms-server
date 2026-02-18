@@ -8,6 +8,7 @@ export interface IWorkspace extends Document {
     capacity: string;
     amenities: string[];
     image: string;
+    images: string[];
     featured: boolean;
     price: string;
     features: {
@@ -48,6 +49,10 @@ const workspaceSchema: Schema = new Schema({
     image: {
         type: String,
         default: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&auto=format',
+    },
+    images: {
+        type: [String],
+        default: [],
     },
     featured: {
         type: Boolean,

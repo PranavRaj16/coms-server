@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
+import { validateEmail, validatePassword, checkRequiredFields } from '../utils/validation.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -11,6 +12,10 @@ export const authUser = async (req: Request, res: Response): Promise<void | any>
 
         if (!email || !password) {
             return res.status(400).json({ message: 'Please provide email and password' });
+        }
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
         }
 
         const user = await User.findOne({ email });
@@ -40,8 +45,17 @@ export const registerUser = async (req: Request, res: Response): Promise<void | 
     try {
         const { name, email, password, role, mobile, organization } = req.body;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: 'Please fill all required fields' });
+        const requiredError = checkRequiredFields(req.body, ['name', 'email', 'password']);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
 
         const userExists = await User.findOne({ email });
@@ -121,7 +135,16 @@ export const updateUserProfile = async (req: any, res: Response): Promise<void |
                 if (!isMatch) {
                     return res.status(400).json({ message: 'Current password does not match' });
                 }
+
+                if (!validatePassword(req.body.password)) {
+                    return res.status(400).json({ message: 'New password must be at least 6 characters' });
+                }
+
                 user.password = req.body.password;
+            }
+
+            if (req.body.email && !validateEmail(req.body.email)) {
+                return res.status(400).json({ message: 'Invalid email format' });
             }
 
             const updatedUser = await user.save();
