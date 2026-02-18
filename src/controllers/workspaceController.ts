@@ -7,6 +7,8 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
+const DEFAULT_WORKSPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&auto=format';
+
 // @desc    Get all workspaces
 // @route   GET /api/workspaces
 // @access  Public
@@ -102,8 +104,9 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
                 if (!workspace.images.includes(workspace.image || '')) {
                     workspace.image = workspace.images[0];
                 }
-            } else {
-                workspace.image = '';
+            } else if (!workspace.image) {
+                // If images array is empty and no primary image is set, use default
+                workspace.image = DEFAULT_WORKSPACE_IMAGE;
             }
 
             const updatedWorkspace = await workspace.save();

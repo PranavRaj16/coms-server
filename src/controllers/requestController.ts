@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import QuoteRequest from '../models/QuoteRequest.js';
 import ContactRequest from '../models/ContactRequest.js';
+import BookingRequest from '../models/BookingRequest.js';
+import VisitRequest from '../models/VisitRequest.js';
 import User from '../models/User.js';
 import { validateEmail, checkRequiredFields, validateMobile } from '../utils/validation.js';
 
@@ -86,6 +88,83 @@ export const getContactRequests = async (req: Request, res: Response): Promise<v
     }
 };
 
+// --- Booking Requests ---
+
+// @desc    Submit a booking request
+// @route   POST /api/requests/booking
+// @access  Public
+export const submitBookingRequest = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const requiredFields = ['fullName', 'email', 'contactNumber', 'duration', 'startDate', 'workspaceId', 'workspaceName'];
+        const requiredError = checkRequiredFields(req.body, requiredFields);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(req.body.email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (req.body.contactNumber && !validateMobile(req.body.contactNumber)) {
+            return res.status(400).json({ message: 'Invalid contact number format' });
+        }
+
+        const bookingRequest = new BookingRequest(req.body);
+        const createdRequest = await bookingRequest.save();
+        res.status(201).json(createdRequest);
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// @desc    Get all booking requests
+// @route   GET /api/requests/booking
+// @access  Private/Admin
+export const getBookingRequests = async (req: any, res: Response): Promise<void | any> => {
+    try {
+        let query = {};
+        if (req.user && req.user.role !== 'Admin') {
+            query = { email: req.user.email };
+        }
+        const requests = await BookingRequest.find(query).sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update booking request status
+// @route   PUT /api/requests/booking/:id
+// @access  Private/Admin
+export const updateBookingRequest = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const id = req.params.id;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ message: 'Status is required' });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid Booking Request ID format' });
+        }
+
+        const updatedRequest = await BookingRequest.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (updatedRequest) {
+            res.json(updatedRequest);
+        } else {
+            res.status(404).json({ message: 'Booking request not found' });
+        }
+    } catch (error: any) {
+        res.status(400).json({ message: `Update failed: ${error.message}` });
+    }
+};
+
 // --- Dashboard Stats ---
 
 // @desc    Get dashboard stats
@@ -96,6 +175,8 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
         const totalUsers = await User.countDocuments();
         const activeMembers = await User.countDocuments({ status: 'Active' });
         const newQuoteRequests = await QuoteRequest.countDocuments({ status: 'Pending' });
+        const newBookingRequests = await BookingRequest.countDocuments({ status: 'Pending' });
+        const newVisitRequests = await VisitRequest.countDocuments({ status: 'Pending' });
 
         // Mock revenue growth for now as requested in stats grid
         const revenueGrowth = "+12.5%";
@@ -104,6 +185,8 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
             totalUsers,
             activeMembers,
             newQuoteRequests,
+            newBookingRequests,
+            newVisitRequests,
             revenueGrowth
         });
     } catch (error: any) {
@@ -185,6 +268,83 @@ export const updateContactRequest = async (req: Request, res: Response): Promise
         }
     } catch (error: any) {
         console.error(`[CRITICAL] Error updating contact: ${error.message}`);
+        res.status(400).json({ message: `Update failed: ${error.message}` });
+    }
+};
+
+// --- Visit Requests ---
+
+// @desc    Submit a visit request
+// @route   POST /api/requests/visit
+// @access  Public
+export const submitVisitRequest = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const requiredFields = ['fullName', 'email', 'contactNumber', 'visitDate', 'workspaceId', 'workspaceName'];
+        const requiredError = checkRequiredFields(req.body, requiredFields);
+        if (requiredError) {
+            return res.status(400).json({ message: requiredError });
+        }
+
+        if (!validateEmail(req.body.email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (req.body.contactNumber && !validateMobile(req.body.contactNumber)) {
+            return res.status(400).json({ message: 'Invalid contact number format' });
+        }
+
+        const visitRequest = new VisitRequest(req.body);
+        const createdRequest = await visitRequest.save();
+        res.status(201).json(createdRequest);
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// @desc    Get all visit requests
+// @route   GET /api/requests/visit
+// @access  Private/Admin
+export const getVisitRequests = async (req: any, res: Response): Promise<void | any> => {
+    try {
+        let query = {};
+        if (req.user && req.user.role !== 'Admin') {
+            query = { email: req.user.email };
+        }
+        const requests = await VisitRequest.find(query).sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update visit request status
+// @route   PUT /api/requests/visit/:id
+// @access  Private/Admin
+export const updateVisitRequest = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const id = req.params.id;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ message: 'Status is required' });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid Visit Request ID format' });
+        }
+
+        const updatedRequest = await VisitRequest.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (updatedRequest) {
+            res.json(updatedRequest);
+        } else {
+            res.status(404).json({ message: 'Visit request not found' });
+        }
+    } catch (error: any) {
         res.status(400).json({ message: `Update failed: ${error.message}` });
     }
 };
