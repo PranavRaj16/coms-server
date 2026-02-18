@@ -10,7 +10,9 @@ import postRoutes from './routes/postRoutes.js';
 
 const app: Express = express();
 
-app.use(cors());
+app.use(cors({
+    origin: "*"
+}));
 app.use(express.json());
 
 // Request logger middleware
