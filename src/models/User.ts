@@ -7,7 +7,7 @@ export interface IUser extends Document {
     mobile?: string;
     organization?: string;
     password?: string;
-    role: 'Admin' | 'Member' | 'Manager';
+    role: 'Admin' | 'Member' | 'Manager' | 'Authenticator';
     status: 'Active' | 'Inactive' | 'Pending';
     joinedDate: string;
     lastActive: string;
@@ -38,7 +38,7 @@ const userSchema: Schema = new Schema({
     },
     role: {
         type: String,
-        enum: ['Admin', 'Member', 'Manager'],
+        enum: ['Admin', 'Member', 'Manager', 'Authenticator'],
         default: 'Member',
     },
     status: {

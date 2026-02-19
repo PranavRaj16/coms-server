@@ -5,6 +5,9 @@ import workspaceRoutes from './routes/workspaceRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
 import postRoutes from './routes/postRoutes.js';
+import dayPassRoutes from './routes/dayPassRoutes.js';
+
+
 
 
 
@@ -31,6 +34,8 @@ app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/daypass', dayPassRoutes);
+
 
 // Error Handling Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
