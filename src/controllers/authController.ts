@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import { validateEmail, validatePassword, checkRequiredFields } from '../utils/validation.js';
+import sendEmail from '../utils/sendEmail.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -21,6 +22,17 @@ export const authUser = async (req: Request, res: Response): Promise<void | any>
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
+            // If user status is Inactive, block login
+            if (user.status === 'Inactive') {
+                return res.status(403).json({ message: 'Account is deactivated. Please contact administrator.' });
+            }
+
+            // Update status to Active if it was Pending
+            if (user.status === 'Pending') {
+                user.status = 'Active';
+                await user.save();
+            }
+
             res.json({
                 _id: user._id,
                 name: user.name,
@@ -74,6 +86,48 @@ export const registerUser = async (req: Request, res: Response): Promise<void | 
         });
 
         if (user) {
+            // Send Welcome Email
+            try {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Welcome to Cohort Management Ecosystem',
+                    message: `
+                        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
+                            <div style="background-color: #000; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                                <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 2px;">COHORT ECOSYSTEM</h1>
+                            </div>
+                            <div style="background-color: #fff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                                <h2 style="color: #333; margin-top: 0;">Welcome, ${user.name}!</h2>
+                                <p style="color: #666; font-size: 16px; line-height: 1.6;">Your account has been successfully created. You now have access to the Cohort Management Ecosystem dashboard.</p>
+                                
+                                <div style="background-color: #f4f7f6; padding: 25px; border-radius: 12px; margin: 30px 0; border: 1px solid #e1e8e7;">
+                                    <p style="margin-top: 0; font-weight: bold; color: #444;">Your Access Credentials:</p>
+                                    <p style="margin: 10px 0; color: #555;"><strong>Email:</strong> <span style="color: #000; font-family: monospace;">${user.email}</span></p>
+                                    <p style="margin: 10px 0; color: #555;"><strong>Password:</strong> <span style="color: #000; font-family: monospace;">${password}</span></p>
+                                </div>
+
+                                <div style="text-align: center; margin: 40px 0;">
+                                    <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" 
+                                       style="background-color: #000; color: #fff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+                                       Sign In to Ecosystem
+                                    </a>
+                                </div>
+
+                                <p style="color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    Automated message from Cohort Management System. Please do not reply to this email.
+                                </p>
+                                <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                                    Welcome aboard,<br>
+                                    <strong>Cohort Operations Team</strong>
+                                </p>
+                            </div>
+                        </div>
+                    `
+                });
+            } catch (emailError) {
+                console.error('Email sending failed:', emailError);
+            }
+
             res.status(201).json({
                 _id: user._id,
                 name: user.name,

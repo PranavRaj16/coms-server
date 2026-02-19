@@ -19,6 +19,7 @@ export interface IWorkspace extends Document {
         cabinSeats?: number;
     };
     allottedTo?: mongoose.Types.ObjectId | string;
+    allotmentStart?: Date;
     unavailableUntil?: Date;
 }
 
@@ -87,6 +88,10 @@ const workspaceSchema: Schema = new Schema({
     allottedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        default: null
+    },
+    allotmentStart: {
+        type: Date,
         default: null
     },
     unavailableUntil: {

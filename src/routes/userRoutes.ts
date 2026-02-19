@@ -11,13 +11,14 @@ import { protect, admin } from '../middleware/authMiddleware.js';
 const router: Router = express.Router();
 
 router.post('/login', authUser);
+router.post('/register', registerUser);
 router.route('/profile')
     .get(protect, getUserProfile)
     .put(protect, updateUserProfile);
 
 router.route('/')
     .get(protect, admin, getUsers)
-    .post(registerUser);
+    .post(protect, admin, createUser);
 
 router.route('/:id')
     .put(protect, admin, updateUser)

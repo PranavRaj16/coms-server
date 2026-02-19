@@ -15,7 +15,7 @@ const DEFAULT_WORKSPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548
 export const getWorkspaces = async (req: Request, res: Response): Promise<void | any> => {
     try {
         const workspaces = await Workspace.find({})
-            .populate('allottedTo', 'name email organization')
+            .populate('allottedTo', 'name email mobile organization')
             .sort({ createdAt: -1 });
         res.json(workspaces);
     } catch (error: any) {
@@ -28,7 +28,7 @@ export const getWorkspaces = async (req: Request, res: Response): Promise<void |
 // @access  Public
 export const getWorkspaceById = async (req: Request, res: Response): Promise<void | any> => {
     try {
-        const workspace = await Workspace.findById(req.params.id).populate('allottedTo', 'name email organization');
+        const workspace = await Workspace.findById(req.params.id).populate('allottedTo', 'name email mobile organization');
         if (workspace) {
             res.json(workspace);
         } else {
@@ -51,7 +51,7 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
 
         const workspace = new Workspace(req.body);
         const createdWorkspace = await workspace.save();
-        const populatedWorkspace = await Workspace.findById(createdWorkspace._id).populate('allottedTo', 'name email organization');
+        const populatedWorkspace = await Workspace.findById(createdWorkspace._id).populate('allottedTo', 'name email mobile organization');
         res.status(201).json(populatedWorkspace);
     } catch (error: any) {
         res.status(400).json({ message: error.message });
@@ -110,7 +110,7 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
             }
 
             const updatedWorkspace = await workspace.save();
-            const populatedWorkspace = await Workspace.findById(updatedWorkspace._id).populate('allottedTo', 'name email organization');
+            const populatedWorkspace = await Workspace.findById(updatedWorkspace._id).populate('allottedTo', 'name email mobile organization');
             res.json(populatedWorkspace);
         } else {
             res.status(404).json({ message: 'Workspace not found' });
@@ -229,7 +229,7 @@ export const getCommunityMembers = async (req: AuthRequest, res: Response): Prom
         const communityWorkspaces = await Workspace.find({
             location: myWorkspace.location,
             allottedTo: { $nin: [null, req.user._id] }
-        }).populate('allottedTo', 'name email joinedDate role organization');
+        }).populate('allottedTo', 'name email mobile joinedDate role organization');
 
         const members = communityWorkspaces.map(ws => ({
             workspaceName: ws.name,

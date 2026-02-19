@@ -26,10 +26,11 @@ const userSchema: Schema = new Schema({
     },
     mobile: {
         type: String,
+        unique: true,
+        sparse: true,
     },
     organization: {
         type: String,
-        default: 'Individual',
     },
     password: {
         type: String,
@@ -43,7 +44,7 @@ const userSchema: Schema = new Schema({
     status: {
         type: String,
         enum: ['Active', 'Inactive', 'Pending'],
-        default: 'Active',
+        default: 'Pending',
     },
     joinedDate: {
         type: String,
