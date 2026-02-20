@@ -12,7 +12,8 @@ import {
     updateBookingRequest,
     submitVisitRequest,
     getVisitRequests,
-    updateVisitRequest
+    updateVisitRequest,
+    getInvoices
 } from '../controllers/requestController.js';
 
 import { protect, admin } from '../middleware/authMiddleware.js';
@@ -27,8 +28,9 @@ router.post('/contact', submitContactRequest);
 router.get('/contact', protect, admin, getContactRequests);
 router.put('/contact/:id', protect, admin, updateContactRequest);
 
-router.post('/booking', submitBookingRequest);
+router.post('/booking', protect, submitBookingRequest);
 router.get('/booking', protect, getBookingRequests);
+router.get('/invoices', protect, getInvoices);
 router.put('/booking/:id', protect, admin, updateBookingRequest);
 
 router.post('/visit', submitVisitRequest);

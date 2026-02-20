@@ -9,7 +9,11 @@ export interface IBookingRequest extends Document {
     firmName: string;
     duration: string;
     startDate: Date;
-    status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
+    totalAmount: number;
+    paymentMethod: 'Pay Now' | 'Pay Later' | 'Invoice';
+    paymentStatus: 'Pending' | 'Paid';
+    invoiceId?: string;
+    status: 'Pending' | 'Awaiting Payment' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled';
 }
 
 const bookingRequestSchema: Schema = new Schema({
@@ -44,9 +48,28 @@ const bookingRequestSchema: Schema = new Schema({
         type: Date,
         required: true,
     },
+    totalAmount: {
+        type: Number,
+        default: 0,
+    },
+    paymentMethod: {
+        type: String,
+        enum: ['Pay Now', 'Pay Later', 'Invoice'],
+        required: true,
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['Pending', 'Paid'],
+        default: 'Pending',
+    },
+    invoiceId: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected', 'Completed'],
+        enum: ['Pending', 'Awaiting Payment', 'Confirmed', 'Rejected', 'Completed', 'Cancelled'],
         default: 'Pending',
     }
 }, {

@@ -10,7 +10,7 @@ export interface IWorkspace extends Document {
     image: string;
     images: string[];
     featured: boolean;
-    price: string;
+    price: number;
     features: {
         hasConferenceHall: boolean;
         hasCabin: boolean;
@@ -20,6 +20,7 @@ export interface IWorkspace extends Document {
     };
     allottedTo?: mongoose.Types.ObjectId | string;
     allotmentStart?: Date;
+    allotmentEnd?: Date;
     unavailableUntil?: Date;
 }
 
@@ -60,8 +61,8 @@ const workspaceSchema: Schema = new Schema({
         default: false,
     },
     price: {
-        type: String,
-        default: 'Contact for Pricing',
+        type: Number,
+        default: 0,
     },
     features: {
         hasConferenceHall: {
@@ -91,6 +92,10 @@ const workspaceSchema: Schema = new Schema({
         default: null
     },
     allotmentStart: {
+        type: Date,
+        default: null
+    },
+    allotmentEnd: {
         type: Date,
         default: null
     },

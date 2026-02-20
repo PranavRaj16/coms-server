@@ -11,6 +11,8 @@ export interface IUser extends Document {
     status: 'Active' | 'Inactive' | 'Pending';
     joinedDate: string;
     lastActive: string;
+    resetPasswordToken?: string;
+    resetPasswordExpire?: Date;
     matchPassword(password: string): Promise<boolean>;
 }
 
@@ -53,7 +55,9 @@ const userSchema: Schema = new Schema({
     lastActive: {
         type: String,
         default: 'Just now',
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date
 }, {
     timestamps: true,
 });

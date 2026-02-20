@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import { validateEmail, validatePassword, checkRequiredFields } from '../utils/validation.js';
 import sendEmail from '../utils/sendEmail.js';
+import crypto from 'crypto';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -215,6 +216,114 @@ export const updateUserProfile = async (req: any, res: Response): Promise<void |
         } else {
             res.status(404).json({ message: 'User not found' });
         }
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Forgot password
+// @route   POST /api/users/forgotpassword
+// @access  Public
+export const forgotPassword = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User with this email does not exist' });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars token
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+        await user.save();
+
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password/${resetToken}`;
+
+        const message = `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
+                <div style="background-color: #000; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                    <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 2px;">PASSWORD RESET</h1>
+                </div>
+                <div style="background-color: #fff; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
+                    <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested a password reset for your Cohort Management Ecosystem account. Use the token below or click the button to set a new password.</p>
+                    
+                    <div style="background-color: #f4f7f6; padding: 25px; border-radius: 12px; margin: 30px 0; border: 1px solid #e1e8e7; text-align: center;">
+                        <p style="margin-top: 0; font-weight: bold; color: #444;">Your Reset Token:</p>
+                        <h1 style="color: #000; font-family: monospace; font-size: 32px; letter-spacing: 5px; margin: 10px 0;">${resetToken}</h1>
+                        <p style="color: #666; font-size: 12px; margin-bottom: 0;">This token expires in 10 minutes.</p>
+                    </div>
+
+                    <div style="text-align: center; margin: 40px 0;">
+                        <a href="${resetUrl}" 
+                           style="background-color: #000; color: #fff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+                           Reset Password
+                        </a>
+                    </div>
+
+                    <p style="color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px;">
+                        If you did not request this, please ignore this email.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Password Reset Request',
+                message,
+            });
+
+            res.status(200).json({ message: 'Email sent' });
+        } catch (error) {
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save();
+            return res.status(500).json({ message: 'Email could not be sent' });
+        }
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Reset password
+// @route   PUT /api/users/resetpassword/:resettoken
+// @access  Public
+export const resetPassword = async (req: Request, res: Response): Promise<void | any> => {
+    try {
+        const { password } = req.body;
+        const resetToken = req.params.resettoken;
+
+        const user = await User.findOne({
+            resetPasswordToken: resetToken,
+            resetPasswordExpire: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired reset token' });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        user.password = password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+
+        await user.save();
+
+        res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            token: generateToken(user._id.toString()),
+        });
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
