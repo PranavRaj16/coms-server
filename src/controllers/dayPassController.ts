@@ -38,95 +38,137 @@ export const requestDayPass = async (req: Request, res: Response) => {
             });
         });
 
-        // PDF Design System
+        // PDF Design System - Matching the new Premium Blue Theme
         const colors = {
-            primary: '#0D9488',
+            primary: '#2563EB', // Blue 600
+            secondary: '#1E40AF', // Blue 800
             slate: '#0F172A',
             muted: '#64748B',
+            lightMuted: '#94A3B8',
             border: '#E2E8F0',
-            bg: '#FFFFFF'
+            bg: '#FFFFFF',
+            cardBg: '#F8FAFC'
         };
 
-        // Page setup
         const pageWidth = 420; // A5 width
+        const pageHeight = 595; // A5 height
         const centerX = pageWidth / 2;
 
         // Background
-        doc.rect(0, 0, 420, 595).fill(colors.bg);
+        doc.rect(0, 0, pageWidth, pageHeight).fill(colors.bg);
 
-        // Subtle Border
-        doc.rect(20, 20, 380, 555).strokeColor(colors.border).lineWidth(0.5).stroke();
+        // Outer Border
+        doc.rect(20, 20, pageWidth - 40, pageHeight - 40).strokeColor(colors.border).lineWidth(0.5).stroke();
 
-        // Header Section
-        doc.fillColor(colors.primary)
-            .fontSize(10)
+        // 1. Header Section
+        // Logo Placeholder/Text
+        doc.fillColor(colors.slate);
+        doc.fontSize(16).font('Helvetica-Bold');
+        doc.text('Cohort', 40, 45, { continued: true });
+        doc.fillColor(colors.muted).font('Helvetica').text('Ecosystem');
+
+        doc.fillColor(colors.lightMuted)
+            .fontSize(8)
             .font('Helvetica-Bold')
-            .text('COHORT ECOSYSTEM', 0, 50, { align: 'center', characterSpacing: 1.5 });
+            .text('OFFICIAL GUEST ACCESS', 0, 50, { align: 'right', width: pageWidth - 60, characterSpacing: 1 });
 
-        doc.fillColor(colors.slate)
-            .fontSize(36)
-            .font('Helvetica-Bold')
-            .text('GUEST PASS', 0, 70, { align: 'center' });
+        // Header Divider
+        doc.moveTo(40, 80).lineTo(pageWidth - 40, 80).strokeColor(colors.border).lineWidth(0.5).stroke();
 
-        // Divider
-        doc.moveTo(centerX - 40, 125).lineTo(centerX + 40, 125).strokeColor(colors.primary).lineWidth(2).stroke();
+        // 2. Blue Main Header Card
+        const cardX = 40;
+        const cardY = 100;
+        const cardW = pageWidth - 80;
+        const cardH = 120;
 
-        // Information Blocks
-        const labelY = 160;
-        const valueY = 175;
+        // Draw Card with Gradient
+        const grad = doc.linearGradient(cardX, cardY, cardX + cardW, cardY);
+        grad.stop(0, '#1E40AF').stop(1, '#3B82F6');
 
-        // Visitor Name (Left)
-        doc.fillColor(colors.muted).fontSize(8).font('Helvetica-Bold').text('VISITOR NAME', 60, labelY);
-        doc.fillColor(colors.slate).fontSize(14).font('Helvetica-Bold').text(name.toUpperCase(), 60, valueY);
+        doc.roundedRect(cardX, cardY, cardW, cardH, 8).fill(grad);
 
-        // Date (Right)
-        doc.fillColor(colors.muted).fontSize(8).font('Helvetica-Bold').text('VISIT DATE', 250, labelY);
-        doc.fillColor(colors.slate).fontSize(14).font('Helvetica-Bold').text(new Date(visitDate).toLocaleDateString(undefined, { dateStyle: 'medium' }).toUpperCase(), 250, valueY);
+        // Card Content
+        const cardMiddle = cardY + (cardH / 2);
 
-        // Second row
-        const row2Y = 220;
-        doc.fillColor(colors.muted).fontSize(8).font('Helvetica-Bold').text('PURPOSE OF ACCESS', 60, row2Y);
-        doc.fillColor(colors.slate).fontSize(11).font('Helvetica').text(purpose, 60, row2Y + 15, { width: 300 });
+        // "DAY PASS" with lines
+        doc.fillColor('#FFFFFF').fontSize(12).font('Helvetica-Bold');
+        const dayPassText = "DAY PASS";
+        const textWidth = doc.widthOfString(dayPassText);
+        const lineLen = 80;
 
-        // QR Code Container
-        const qrBoxSize = 180;
-        const qrX = centerX - (qrBoxSize / 2);
-        const qrY = 300;
+        doc.moveTo(centerX - (textWidth / 2) - lineLen - 10, cardY + 25)
+            .lineTo(centerX - (textWidth / 2) - 10, cardY + 25)
+            .strokeColor('rgba(255,255,255,0.3)').lineWidth(1).stroke();
 
-        // Draw QR Border
-        doc.roundedRect(qrX - 10, qrY - 10, qrBoxSize + 20, qrBoxSize + 20, 20)
-            .strokeColor(colors.border)
-            .lineWidth(1)
-            .stroke();
+        doc.moveTo(centerX + (textWidth / 2) + 10, cardY + 25)
+            .lineTo(centerX + (textWidth / 2) + lineLen + 10, cardY + 25)
+            .strokeColor('rgba(255,255,255,0.3)').lineWidth(1).stroke();
 
-        doc.image(qrCodeData, qrX, qrY, {
-            fit: [qrBoxSize, qrBoxSize]
+        doc.text(dayPassText, 0, cardY + 20, { align: 'center' });
+
+        doc.fillColor('rgba(255,255,255,0.7)').fontSize(7).font('Helvetica-Bold').text('PASS ID', 0, cardY + 45, { align: 'center' });
+        doc.fillColor('#FFFFFF').fontSize(28).font('Helvetica-Bold').text(passCode, 0, cardY + 65, { align: 'center' });
+
+        // 3. Visitor Information (Rows)
+        const infoY = cardY + cardH + 15;
+        const colW = (pageWidth - 80) / 2;
+
+        // Row 1: Visitor Name & Visit Date
+        doc.fillColor(colors.muted).fontSize(7).font('Helvetica-Bold').text('VISITOR NAME', 40, infoY);
+        doc.fillColor(colors.slate).fontSize(10).font('Helvetica-Bold').text(name, 40, infoY + 12, { width: colW - 10 });
+
+        doc.fillColor(colors.muted).fontSize(7).font('Helvetica-Bold').text('VISIT DATE', 40 + colW + 10, infoY);
+        doc.fillColor(colors.slate).fontSize(10).font('Helvetica-Bold').text(new Date(visitDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }), 40 + colW + 10, infoY + 12, { width: colW - 10 });
+
+        // Row 2: Purpose of Visit
+        const purposeY = infoY + 38;
+        doc.fillColor(colors.muted).fontSize(7).font('Helvetica-Bold').text('PURPOSE OF VISIT', 40, purposeY);
+        doc.fillColor(colors.slate).fontSize(10).font('Helvetica-Bold').text(`"${purpose}"`, 40, purposeY + 12, { width: pageWidth - 80 });
+
+        // 4. Middle Section Divider
+        const dividerY = purposeY + 42;
+        doc.moveTo(40, dividerY).lineTo(pageWidth - 40, dividerY).strokeColor(colors.border).lineWidth(0.5).stroke();
+
+        // "SCAN AT RECEPTION"
+        const scanText = "SCAN AT RECEPTION";
+        doc.fontSize(7).font('Helvetica-Bold');
+        const scanTextW = doc.widthOfString(scanText);
+        doc.fillColor(colors.muted).text(scanText, 0, dividerY + 15, { align: 'center' });
+
+        doc.moveTo(40, dividerY + 20).lineTo(centerX - (scanTextW / 2) - 10, dividerY + 20).strokeColor(colors.border).lineWidth(0.5).stroke();
+        doc.moveTo(centerX + (scanTextW / 2) + 10, dividerY + 20).lineTo(pageWidth - 40, dividerY + 20).strokeColor(colors.border).lineWidth(0.5).stroke();
+
+        // 5. QR Code Area
+        const qrSize = 130;
+        const qrBoxY = dividerY + 45;
+
+        // QR Container
+        doc.roundedRect(centerX - (qrSize / 2) - 15, qrBoxY - 15, qrSize + 30, qrSize + 30, 8)
+            .fill(colors.cardBg);
+
+        doc.image(qrCodeData, centerX - (qrSize / 2), qrBoxY, {
+            fit: [qrSize, qrSize]
         });
 
-        // Pass Code below QR
+        // 6. Footer Disclaimer
+        const footerY = pageHeight - 75;
         doc.fillColor(colors.muted)
-            .fontSize(10)
-            .font('Helvetica-Bold')
-            .text(passCode, 0, qrY + qrBoxSize + 25, { align: 'center', characterSpacing: 2 });
-
-        // Footer Section
-        doc.fillColor(colors.muted)
-            .fontSize(8)
-            .font('Helvetica')
-            .text('This digital pass grants temporary access to Cohort facilities.', 0, 520, { align: 'center' });
-
-        doc.fillColor(colors.slate)
-            .fontSize(9)
-            .font('Helvetica-Bold')
-            .text('PRESENT THIS AT RECEPTION FOR SCANNING', 0, 535, { align: 'center' });
-
-        // Bottom Brand Mark
-        doc.fillColor(colors.primary)
             .fontSize(7)
-            .font('Helvetica-Bold')
-            .text('WWW.COHORTWORK.COM • POWERED BY COHORT ECOSYSTEM', 0, 560, { align: 'center' });
+            .font('Helvetica')
+            .text('This pass is non-transferable and valid only for the date specified above.', 40, footerY, { align: 'center', width: pageWidth - 80 })
+            .text('Access is subject to Cohort terms of service and security policies.', { align: 'center', width: pageWidth - 80 });
+
+        // Bottom Website Link
+        const webLink = "www.cohortwork.com";
+        doc.fontSize(9).font('Helvetica-Bold');
+        const webW = doc.widthOfString(webLink);
+        doc.fillColor(colors.secondary).text(webLink, 0, pageHeight - 40, { align: 'center' });
+
+        doc.moveTo(40, pageHeight - 35).lineTo(centerX - (webW / 2) - 10, pageHeight - 35).strokeColor(colors.border).lineWidth(0.5).stroke();
+        doc.moveTo(centerX + (webW / 2) + 10, pageHeight - 35).lineTo(pageWidth - 40, pageHeight - 35).strokeColor(colors.border).lineWidth(0.5).stroke();
 
         doc.end();
+
 
         const pdfBuffer = await pdfPromise;
 
